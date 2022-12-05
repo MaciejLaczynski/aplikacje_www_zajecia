@@ -6,12 +6,28 @@ from .models import Osoba, Druzyna
 from .serializers import OsobaModelSerializer, DruzynaModelSerializer
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 
 
 # Create your views here.
 def index(request):
     return HttpResponse("Hello, world. You're at the polls index.")
+
+@api_view(['GET'])
+def person_view(request, pk):
+    if not request.user.has_perm('polls.view_osoba'):
+        raise PermissionDenied()
+    try:
+        osoba = Osoba.objects.get(pk=pk)
+        if not osoba.can_view_other_persons and osoba.owner != request.user:
+            return HttpResponse(f"This user is named {osoba.imie}")
+        else:
+            serializer = OsobaModelSerializer(osoba)
+            return Response(serializer.data)
+    except Osoba.DoesNotExist:
+        return HttpResponse(f"Baza nie posiada uzytwkonika z ID: {pk}.")
+
 @api_view(['GET'])
 def person_list(request):
     if request.method == 'GET':
