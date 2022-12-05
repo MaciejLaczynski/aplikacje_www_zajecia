@@ -41,6 +41,7 @@ class OsobaModelSerializer(serializers.Serializer):
         instance.save()
         return instance
 
+
     def validate_imie(self, value):
         if not value.isalpha():
             raise serializers.ValidationError("W polu moga znalezc sie tylko litery")
