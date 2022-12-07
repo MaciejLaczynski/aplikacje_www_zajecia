@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Gun, Choice, Osoba, Druzyna
 
 class GunModelSerializer(serializers.Serializer):
@@ -8,8 +9,8 @@ class GunModelSerializer(serializers.Serializer):
 
 class DruzynaModelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    nazwa = serializers.CharField(max_length=64, blank=False)
-    kraj = serializers.CharField(max_length=2, blank=False)
+    nazwa = serializers.CharField(max_length=64)
+    kraj = serializers.CharField(max_length=2)
 
     def create(self, validated_data):
         return Druzyna.objects.create(**validated_data)
@@ -22,10 +23,12 @@ class DruzynaModelSerializer(serializers.Serializer):
 
 class OsobaModelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    imie = serializers.CharField(max_length=64, blank=False)
-    nazwisko = serializers.CharField(max_length=64, blank=False)
+    imie = serializers.CharField(max_length=64)
+    nazwisko = serializers.CharField(max_length=64)
     miesiac_urodzenia = serializers.ChoiceField(choices=Osoba.Dates.choices, default=Osoba.Dates.JANUARY)
     druzyna = serializers.PrimaryKeyRelatedField(queryset=Druzyna.objects.all(), allow_null=True)
+    data_dodania = serializers.DateTimeField()
+    owner = serializers.ReadOnlyField(source='owner.username')
 
     def create(self, validated_data):
         return Osoba.objects.create(**validated_data)
@@ -37,6 +40,22 @@ class OsobaModelSerializer(serializers.Serializer):
         instance.druzyna = validated_data.get('druzyna', instance.druzyna)
         instance.save()
         return instance
+
+
+    def validate_imie(self, value):
+        if not value.isalpha():
+            raise serializers.ValidationError("W polu moga znalezc sie tylko litery")
+        return value
+
+    def validate_nazwisko(self, value):
+        if not value.isalpha():
+            raise serializers.ValidationError("W polu moga znalezc sie tylko litery")
+        return value
+	
+    def validate_data_dodania(self, value):
+        if value > timezone.now():
+            raise serializers.ValidationError("Data urodzenia nie moze byc z przyszlosci")
+        return value
 
 class GunModelSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
